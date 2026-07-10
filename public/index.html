@@ -69,9 +69,14 @@
             </div>
             <div class="actions">
               <button id="previewBtn" class="btn secondary" type="button">Muat Preview</button>
+              <button id="deleteBtn" class="btn danger" type="button" disabled>
+                Hapus Terpilih (<span id="selectedCount">0</span>)
+              </button>
               <a id="downloadBtn" class="btn primary" href="/api/excel/download">Download Excel</a>
             </div>
           </div>
+
+          <div id="deleteLog" class="log"></div>
 
           <div class="table-wrap">
             <table id="previewTable">

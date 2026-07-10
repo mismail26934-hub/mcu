@@ -95,6 +95,7 @@ node extract-mcu-to-excel.js
 | GET | `/api/status` | Status PDF menunggu & file Excel |
 | POST | `/api/upload` | Upload massal PDF (`pdfs` field) |
 | POST | `/api/process` | Proses semua PDF → Excel |
+| POST | `/api/excel/delete` | Hapus banyak baris Excel (`excelRows`: array nomor baris) |
 | GET | `/api/excel/preview` | Preview data sheet CONTOH (JSON) |
 | GET | `/api/excel/download` | Download file Excel |
 
@@ -124,6 +125,7 @@ node extract-mcu-to-excel.js
 - Baris yang sudah ada (berdasarkan E/N) akan di-update; baris kosong berikutnya diisi untuk PDF baru
 - Kolom **Verifc. date** diisi `diisi KPC` (manual oleh tim KPC)
 - Preview web menampilkan **data tabel**; formatting/merge cell Excel asli mungkin berbeda
+- **Tutup file Excel** sebelum hapus/proses — jika Excel dibuka, perubahan disimpan ke file `- updated.xlsx`
 - Upload maks. 50 file, 15 MB per file (bisa diubah lewat env `MAX_UPLOAD_FILES`, `MAX_UPLOAD_MB`)
 
 ## Deploy ke Hostinger

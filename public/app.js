@@ -6,10 +6,21 @@ const uploadBtn = document.getElementById("uploadBtn");
 const refreshBtn = document.getElementById("refreshBtn");
 const processBtn = document.getElementById("processBtn");
 const previewBtn = document.getElementById("previewBtn");
+const deleteBtn = document.getElementById("deleteBtn");
+const selectedCountEl = document.getElementById("selectedCount");
 const uploadLog = document.getElementById("uploadLog");
 const processLog = document.getElementById("processLog");
+const deleteLog = document.getElementById("deleteLog");
 const previewTable = document.getElementById("previewTable");
 const dropzone = document.querySelector(".dropzone");
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 function setLog(element, message, className = "") {
   element.textContent = message;
@@ -45,19 +56,49 @@ function renderSelectedFiles(files) {
     .join(", ")}`;
 }
 
+function getSelectedExcelRows() {
+  return Array.from(previewTable.querySelectorAll(".row-select:checked")).map(
+    (input) => Number(input.dataset.excelRow)
+  );
+}
+
+function updateSelectionState() {
+  const checkboxes = previewTable.querySelectorAll(".row-select");
+  const checked = previewTable.querySelectorAll(".row-select:checked");
+  const selectAll = previewTable.querySelector("#selectAllRows");
+
+  selectedCountEl.textContent = String(checked.length);
+  deleteBtn.disabled = checked.length === 0;
+
+  if (selectAll) {
+    selectAll.checked = checkboxes.length > 0 && checked.length === checkboxes.length;
+    selectAll.indeterminate =
+      checked.length > 0 && checked.length < checkboxes.length;
+  }
+
+  checkboxes.forEach((input) => {
+    input.closest("tr")?.classList.toggle("selected", input.checked);
+  });
+}
+
 function renderPreview(preview) {
   const thead = previewTable.querySelector("thead");
   const tbody = previewTable.querySelector("tbody");
+  const headers = preview.headers || [];
 
   thead.innerHTML = `
     <tr>
+      <th class="select-col">
+        <input id="selectAllRows" type="checkbox" title="Pilih semua" />
+      </th>
       <th>Baris</th>
-      ${preview.headers.map((header) => `<th>${header}</th>`).join("")}
+      ${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}
     </tr>
   `;
 
   if (!preview.rows.length) {
-    tbody.innerHTML = `<tr><td colspan="${preview.headers.length + 1}">Belum ada data.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${headers.length + 2}">Belum ada data.</td></tr>`;
+    updateSelectionState();
     return;
   }
 
@@ -86,12 +127,22 @@ function renderPreview(preview) {
 
       return `
         <tr>
+          <td class="select-col">
+            <input
+              class="row-select"
+              type="checkbox"
+              data-excel-row="${row.excelRow}"
+              aria-label="Pilih baris ${row.excelRow}"
+            />
+          </td>
           <td>${row.excelRow}</td>
-          ${cells.map((value) => `<td>${value ?? ""}</td>`).join("")}
+          ${cells.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}
         </tr>
       `;
     })
     .join("");
+
+  updateSelectionState();
 }
 
 function renderProcessLog(result) {
@@ -204,11 +255,80 @@ previewBtn.addEventListener("click", async () => {
   try {
     const preview = await fetchJson("/api/excel/preview");
     renderPreview(preview);
+    setLog(deleteLog, "");
   } catch (error) {
     renderPreview({ headers: [], rows: [] });
     setLog(processLog, error.message);
   } finally {
     previewBtn.disabled = false;
+  }
+});
+
+previewTable.addEventListener("change", (event) => {
+  const target = event.target;
+
+  if (target.id === "selectAllRows") {
+    const checked = target.checked;
+    previewTable.querySelectorAll(".row-select").forEach((input) => {
+      input.checked = checked;
+    });
+  }
+
+  if (target.classList.contains("row-select") || target.id === "selectAllRows") {
+    updateSelectionState();
+  }
+});
+
+deleteBtn.addEventListener("click", async () => {
+  const excelRows = getSelectedExcelRows();
+  if (!excelRows.length) {
+    setLog(deleteLog, "Pilih minimal 1 baris untuk dihapus.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Hapus ${excelRows.length} baris terpilih dari Excel?\n\nTindakan ini tidak bisa dibatalkan.`
+  );
+  if (!confirmed) return;
+
+  deleteBtn.disabled = true;
+  setLog(deleteLog, "Menghapus baris terpilih...");
+
+  try {
+    const result = await fetchJson("/api/excel/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ excelRows }),
+    });
+
+    const lines = [
+      result.message,
+      ...result.deleted.map(
+        (item) =>
+          `- Baris ${item.excelRow}: ${item.employeeNumber} | ${item.name}`
+      ),
+    ];
+
+    if (result.isFallbackCopy) {
+      lines.push(
+        "",
+        "PENTING: Tutup file Excel yang sedang dibuka.",
+        "Perubahan disimpan ke: NEW List Pengajuan Verifikasi MCU KPC - updated.xlsx"
+      );
+    } else {
+      lines.push("", `File diperbarui: ${result.outputFileName}`);
+    }
+
+    setLog(deleteLog, lines.join("\n"));
+
+    const preview = await fetchJson("/api/excel/preview");
+    renderPreview(preview);
+    await loadStatus();
+  } catch (error) {
+    setLog(deleteLog, error.message);
+    updateSelectionState();
+  } finally {
+    deleteBtn.disabled = getSelectedExcelRows().length === 0;
   }
 });
 

@@ -201,6 +201,15 @@ h1 {
   color: var(--text);
 }
 
+.btn.danger {
+  background: #b91c1c;
+  color: white;
+}
+
+.btn.danger:hover:not(:disabled) {
+  background: #991b1b;
+}
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -262,6 +271,21 @@ td {
 
 tbody tr:nth-child(even) {
   background: #fafafa;
+}
+
+.select-col {
+  width: 42px;
+  text-align: center;
+}
+
+.select-col input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+tbody tr.selected {
+  background: #fef2f2;
 }
 
 @media (max-width: 900px) {

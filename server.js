@@ -11,6 +11,7 @@ const {
 const {
   processAllPdfs,
   getExcelPreview,
+  deleteExcelRows,
   getStatus,
 } = require("./lib/extract");
 
@@ -111,6 +112,24 @@ app.post("/api/process", async (_req, res) => {
   }
 });
 
+app.post("/api/excel/delete", (req, res) => {
+  try {
+    const excelRows = req.body?.excelRows;
+    if (!Array.isArray(excelRows) || excelRows.length === 0) {
+      res.status(400).json({ error: "Pilih minimal 1 baris untuk dihapus." });
+      return;
+    }
+
+    const result = deleteExcelRows(excelRows);
+    res.json({
+      message: `${result.deletedCount} baris dihapus dari Excel.`,
+      ...result,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.use((error, _req, res, _next) => {
   if (error instanceof multer.MulterError) {
     const message =
@@ -130,4 +149,5 @@ app.listen(PORT, () => {
   console.log(`MCU Web App berjalan di http://localhost:${PORT}`);
   console.log(`Folder PDF : ${PDF_DIR}`);
   console.log(`Folder Excel: ${EXCEL_DIR}`);
+  console.log("Restart server setelah update kode (Ctrl+C lalu npm start).");
 });
