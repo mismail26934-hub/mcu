@@ -19,6 +19,11 @@ D:\Help\
 │   ├── index.html            # UI web app
 │   ├── app.js                # Frontend logic
 │   └── styles.css            # Styles
+├── deploy/                   # Script & config deploy VPS
+│   ├── setup-vps.sh
+│   ├── update.sh
+│   ├── nginx-mcu-app.conf
+│   └── ecosystem.config.cjs
 ├── PDF FIle/                 # Input PDF (upload / manual)
 ├── PDF-backup/               # PDF sukses diproses
 ├── Excel File/               # File Excel output
@@ -128,43 +133,85 @@ node extract-mcu-to-excel.js
 - **Tutup file Excel** sebelum hapus/proses — jika Excel dibuka, perubahan disimpan ke file `- updated.xlsx`
 - Upload maks. 50 file, 15 MB per file (bisa diubah lewat env `MAX_UPLOAD_FILES`, `MAX_UPLOAD_MB`)
 
-## Deploy ke Hostinger
+## Deploy ke Hostinger VPS
 
-### Paket Premium (saat ini)
+Paling cocok untuk app ini (upload PDF, simpan Excel, storage persisten).
+
+### File deploy
+
+```
+deploy/
+├── setup-vps.sh           # Setup awal VPS
+├── update.sh              # Update app
+├── nginx-mcu-app.conf     # Template Nginx
+├── ecosystem.config.cjs   # Konfigurasi PM2
+└── README.md              # Panduan lengkap
+```
+
+### Langkah cepat
+
+**1. Login VPS**
+
+```bash
+ssh root@IP_VPS_ANDA
+```
+
+**2. Clone & setup otomatis**
+
+```bash
+apt install -y git
+git clone https://github.com/mismail26934-hub/mcu.git /var/www/mcu-app
+cd /var/www/mcu-app
+chmod +x deploy/setup-vps.sh deploy/update.sh
+DOMAIN=mcu.domain-anda.com bash deploy/setup-vps.sh
+```
+
+**3. Upload Excel template (dari PC)**
+
+```bash
+scp "Excel File/NEW List Pengajuan Verifikasi MCU KPC.xlsx" \
+  root@IP_VPS_ANDA:"/var/www/mcu-app/Excel File/"
+```
+
+**4. Buka browser**
+
+`http://IP_VPS_ANDA` atau domain Anda.
+
+### Update setelah ada perubahan
+
+```bash
+cd /var/www/mcu-app
+bash deploy/update.sh
+```
+
+### SSL (opsional)
+
+```bash
+apt install -y certbot python3-certbot-nginx
+certbot --nginx -d mcu.domain-anda.com
+```
+
+Detail lengkap: lihat [`deploy/README.md`](deploy/README.md).
+
+---
+
+### Paket Premium (shared hosting)
 
 **Hostinger Premium tidak mendukung Node.js Web App.** Paket ini untuk PHP/WordPress/static site.
 
-Opsi untuk menjalankan aplikasi ini:
-
 | Opsi | Keterangan |
 |------|------------|
-| **Jalankan lokal / intranet** | `npm start` di PC/server kantor — **paling mudah dengan Premium** |
-| **Upgrade ke Business/Cloud** | Mendukung Node.js Web App via hPanel (GitHub/ZIP upload) |
-| **Hostinger VPS** | Full control, storage persisten — **paling cocok** untuk upload PDF & Excel |
-
-### Deploy ke Business/Cloud atau VPS
-
-1. Upload project (GitHub connect atau ZIP) di hPanel → **Add Website → Node.js Web App**
-2. Set entry file: `server.js`
-3. Set Node.js: **20.x**
-4. Set start command: `npm start`
-5. Pastikan folder `PDF FIle`, `Excel File`, `PDF-backup` writable
-6. Upload file Excel template ke `Excel File/`
-
-**Environment variables (opsional):**
-
-```
-PORT=3000
-MAX_UPLOAD_FILES=50
-MAX_UPLOAD_MB=15
-```
+| **Jalankan lokal / intranet** | `npm start` di PC/server kantor |
+| **Upgrade ke Business/Cloud** | Node.js Web App via hPanel |
+| **Hostinger VPS** | **Paling cocok** — gunakan panduan di atas |
 
 ### Checklist sebelum go-live
 
-- [ ] Login/password untuk akses (belum built-in — tambahkan jika deploy publik)
-- [ ] File Excel template sudah di server
+- [ ] File Excel template sudah di `Excel File/` di VPS
+- [ ] `pm2 status` → app **online**
+- [ ] Test upload PDF → proses → download Excel
 - [ ] Backup rutin folder `Excel File` dan `PDF-backup`
-- [ ] Tutup Excel desktop saat proses berjalan (hindari file lock)
+- [ ] Tambah login/password jika diakses publik (belum built-in)
 
 ## Environment variables
 
