@@ -1,11 +1,16 @@
 {
   "name": "help",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Ekstrak PDF MCU Trakindo/Tirta ke Excel",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "extract": "node extract-mcu-to-excel.js",
+    "dev": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +21,9 @@
     "cfb": "^1.2.2",
     "codepage": "^1.15.0",
     "crc-32": "^1.2.2",
+    "express": "^5.1.0",
     "frac": "^1.1.2",
+    "multer": "^2.0.2",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.4.296",
     "ssf": "^0.11.2",
