@@ -1,16 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #f4f7fb;
+  --bg: #fff8f3;
   --panel: #ffffff;
   --text: #1f2937;
-  --muted: #6b7280;
-  --border: #dbe3ef;
-  --primary: #0f766e;
-  --primary-dark: #0b5f59;
-  --secondary: #e5eef8;
+  --muted: #78716c;
+  --border: #fed7aa;
+  --primary: #ea580c;
+  --primary-dark: #c2410c;
+  --secondary: #ffedd5;
   --ok: #047857;
   --skip: #b45309;
-  --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --shadow: 0 10px 30px rgba(234, 88, 12, 0.1);
 }
 
 * {
@@ -20,12 +20,12 @@
 body {
   margin: 0;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(180deg, #eef6ff 0%, var(--bg) 220px);
+  background: linear-gradient(180deg, #ffedd5 0%, var(--bg) 220px);
   color: var(--text);
 }
 
 code {
-  background: #eef2ff;
+  background: #ffedd5;
   padding: 0.1rem 0.35rem;
   border-radius: 0.35rem;
   font-size: 0.92em;
@@ -133,9 +133,9 @@ h1 {
   justify-content: center;
   gap: 0.35rem;
   min-height: 150px;
-  border: 2px dashed #94a3b8;
+  border: 2px dashed #fdba74;
   border-radius: 0.9rem;
-  background: #f8fafc;
+  background: #fffaf5;
   padding: 1rem;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
@@ -144,7 +144,7 @@ h1 {
 .dropzone:hover,
 .dropzone.dragover {
   border-color: var(--primary);
-  background: #ecfeff;
+  background: #ffedd5;
 }
 
 .dropzone input {
@@ -256,7 +256,7 @@ table {
 thead {
   position: sticky;
   top: 0;
-  background: #eef2ff;
+  background: #ffedd5;
   z-index: 1;
 }
 
@@ -285,7 +285,7 @@ tbody tr:nth-child(even) {
 }
 
 tbody tr.selected {
-  background: #fef2f2;
+  background: #fff7ed;
 }
 
 @media (max-width: 900px) {

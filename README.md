@@ -193,17 +193,73 @@ certbot --nginx -d mcu.domain-anda.com
 
 Detail lengkap: lihat [`deploy/README.md`](deploy/README.md).
 
+## Deploy ke Synology NAS
+
+Cocok untuk intranet kantor — PDF & Excel disimpan di shared folder NAS.
+
+### File Docker
+
+```
+Dockerfile              # Image Node.js 20
+docker-compose.yml      # Container + volume folder data
+deploy/README-synology.md   # Panduan lengkap Synology
+```
+
+### Langkah cepat (Container Manager)
+
+1. Install **Container Manager** di Package Center
+2. Upload/clone project ke `/volume1/docker/mcu-app`
+3. Upload Excel template ke `Excel File/`
+4. SSH ke NAS:
+
+```bash
+cd /volume1/docker/mcu-app
+sudo docker compose up -d --build
+```
+
+5. Buka **http://IP_NAS:3000**
+
+Detail lengkap (Reverse Proxy, HTTPS, troubleshooting): [`deploy/README-synology.md`](deploy/README-synology.md).
+
+## Deploy ke Shared Hosting (PHP / File Manager)
+
+Untuk Hostinger Premium, Niagahoster, cPanel — **tanpa Node.js**.
+
+### Folder deploy
+
+```
+VerifMCU/
+├── index.php              # UI web app
+├── api/                   # REST endpoints PHP
+├── lib/                   # Logic ekstraksi
+├── assets/                # CSS + JS frontend
+├── composer.json          # PhpSpreadsheet + pdfparser
+├── PDF FIle/              # Upload PDF
+├── PDF-backup/            # Arsip PDF terproses
+└── Excel File/            # Template & output Excel
+```
+
+### Langkah cepat
+
+1. Di PC: `cd VerifMCU && composer install --no-dev`
+2. Upload seluruh folder `VerifMCU/` (termasuk `vendor/`) ke `public_html` via File Manager
+3. Upload Excel template ke `Excel File/`
+4. Buka `https://domain-anda.com/`
+
+Detail lengkap: [`VerifMCU/README.md`](VerifMCU/README.md).
+
 ---
 
 ### Paket Premium (shared hosting)
 
-**Hostinger Premium tidak mendukung Node.js Web App.** Paket ini untuk PHP/WordPress/static site.
+**Gunakan versi PHP** di folder [`VerifMCU/`](VerifMCU/) — upload via File Manager, tanpa Node.js.
 
 | Opsi | Keterangan |
 |------|------------|
-| **Jalankan lokal / intranet** | `npm start` di PC/server kantor |
+| **Shared hosting + File Manager** | **Versi PHP** — lihat [`VerifMCU/README.md`](VerifMCU/README.md) |
+| **Jalankan lokal / intranet** | `npm start` di PC/server kantor (Node.js) |
 | **Upgrade ke Business/Cloud** | Node.js Web App via hPanel |
-| **Hostinger VPS** | **Paling cocok** — gunakan panduan di atas |
+| **Hostinger VPS** | Panduan deploy VPS — [`deploy/README.md`](deploy/README.md) |
 
 ### Checklist sebelum go-live
 
