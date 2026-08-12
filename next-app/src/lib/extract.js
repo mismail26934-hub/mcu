@@ -76,6 +76,15 @@ function firstMatch(text, patterns) {
   return null;
 }
 
+function isEmployeeNumberSegment(value) {
+  const raw = (value || "").trim();
+  return /^Z\d+$/i.test(raw) || /^\d{5,6}$/.test(raw);
+}
+
+function normalizeCompany() {
+  return "Trakindo";
+}
+
 function parseFilename(fileName) {
   const base = path.basename(fileName, ".pdf");
   const parts = base.split("_");
@@ -84,11 +93,24 @@ function parseFilename(fileName) {
     return { company: "", employeeNumber: "", name: "" };
   }
 
-  const company = parts[0].replace(/\s+Utama$/i, "").trim();
-  const employeeNumber = parts[1].trim();
-  const name = parts.slice(2).join("_").trim();
+  let employeeIndex = parts.findIndex((part) => isEmployeeNumberSegment(part));
+  if (employeeIndex <= 0) {
+    employeeIndex = 1;
+  }
 
-  return { company, employeeNumber, name };
+  const companyRaw = parts
+    .slice(0, employeeIndex)
+    .join(" ")
+    .replace(/\s+Utama$/i, "")
+    .trim();
+  const employeeNumber = parts[employeeIndex].trim();
+  const name = parts.slice(employeeIndex + 1).join("_").trim();
+
+  return {
+    company: normalizeCompany(companyRaw),
+    employeeNumber,
+    name,
+  };
 }
 
 function normalizeEmployeeNumber(value, fallbackFromFile = "") {
@@ -168,7 +190,7 @@ function extractFields(text, fileName) {
 
   return {
     mcuDate: formatDateDDMmmYY(mcuDate),
-    company: fromFile.company || "Trakindo",
+    company: normalizeCompany(fromFile.company),
     employeeNumber,
     name: (nameMatch?.[1] || fromFile.name || "").trim(),
     gender: mapGender(genderDobMatch?.[1] || ""),
