@@ -283,6 +283,26 @@ tbody tr.selected {
   background: #fff7ed;
 }
 
+.backup-table-wrap {
+  max-height: 360px;
+}
+
+.file-name-cell {
+  white-space: normal;
+  word-break: break-word;
+  min-width: 220px;
+  max-width: 420px;
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.btn-small {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+}
+
 @media (max-width: 900px) {
   .header,
   .grid,

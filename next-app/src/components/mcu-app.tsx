@@ -7,6 +7,12 @@ type Status = {
   excelFile: string | null;
 };
 
+type BackupPdfEntry = {
+  name: string;
+  size: number;
+  modifiedAt: string;
+};
+
 type PreviewRow = {
   excelRow: number;
   no: string;
@@ -48,6 +54,23 @@ type ProcessResult = {
   moved?: Array<{ file: string; backupName: string }>;
   preview?: Preview;
 };
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("id-ID", {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, options);
@@ -94,11 +117,16 @@ export default function McuApp() {
   const [processLog, setProcessLog] = useState<React.ReactNode>("");
   const [deleteLog, setDeleteLog] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [backupFiles, setBackupFiles] = useState<BackupPdfEntry[]>([]);
+  const [selectedBackup, setSelectedBackup] = useState<Set<string>>(new Set());
+  const [backupLog, setBackupLog] = useState("");
   const [busy, setBusy] = useState({
     upload: false,
     process: false,
     preview: false,
     delete: false,
+    backup: false,
+    backupDelete: false,
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,12 +137,20 @@ export default function McuApp() {
     return data;
   }, []);
 
+  const loadBackupFiles = useCallback(async () => {
+    const data = await fetchJson<{ files: BackupPdfEntry[] }>("/api/pdf-backup");
+    setBackupFiles(data.files);
+    setSelectedBackup(new Set());
+    return data.files;
+  }, []);
+
   useEffect(() => {
     loadStatus().catch((error: Error) => {
       setStatus({ pendingPdfCount: 0, excelFile: null });
       setUploadLog(error.message);
     });
-  }, [loadStatus]);
+    loadBackupFiles().catch(() => setBackupFiles([]));
+  }, [loadStatus, loadBackupFiles]);
 
   function handleFiles(files: FileList | null) {
     if (!files?.length) {
@@ -236,6 +272,7 @@ export default function McuApp() {
         setSelectedRows(new Set());
       }
       await loadStatus();
+      await loadBackupFiles();
     } catch (error) {
       setProcessLog(
         error instanceof Error ? error.message : "Proses gagal."
@@ -324,6 +361,82 @@ export default function McuApp() {
       setBusy((b) => ({ ...b, delete: false }));
     }
   }
+
+  function toggleBackupFile(name: string, checked: boolean) {
+    setSelectedBackup((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(name);
+      else next.delete(name);
+      return next;
+    });
+  }
+
+  function toggleAllBackup(checked: boolean) {
+    if (!checked) {
+      setSelectedBackup(new Set());
+      return;
+    }
+    setSelectedBackup(new Set(backupFiles.map((file) => file.name)));
+  }
+
+  async function handleDeleteBackup() {
+    const files = Array.from(selectedBackup);
+    if (!files.length) {
+      setBackupLog("Pilih minimal 1 file backup untuk dihapus.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Hapus ${files.length} file dari PDF-backup?\n\nTindakan ini tidak bisa dibatalkan.`
+    );
+    if (!confirmed) return;
+
+    setBusy((b) => ({ ...b, backupDelete: true }));
+    setBackupLog("Menghapus file backup...");
+
+    try {
+      const result = await fetchJson<{
+        message: string;
+        deleted: string[];
+        errors?: Array<{ name: string; error: string }>;
+      }>("/api/pdf-backup/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files }),
+      });
+
+      const lines = [result.message, ...result.deleted.map((name) => `- ${name}`)];
+      if (result.errors?.length) {
+        lines.push("", "Beberapa file gagal:");
+        for (const item of result.errors) {
+          lines.push(`- ${item.name}: ${item.error}`);
+        }
+      }
+      setBackupLog(lines.join("\n"));
+      await loadBackupFiles();
+    } catch (error) {
+      setBackupLog(error instanceof Error ? error.message : "Hapus gagal.");
+    } finally {
+      setBusy((b) => ({ ...b, backupDelete: false }));
+    }
+  }
+
+  async function handleRefreshBackup() {
+    setBusy((b) => ({ ...b, backup: true }));
+    try {
+      await loadBackupFiles();
+      setBackupLog("Daftar PDF-backup diperbarui.");
+    } catch (error) {
+      setBackupLog(error instanceof Error ? error.message : "Refresh gagal.");
+    } finally {
+      setBusy((b) => ({ ...b, backup: false }));
+    }
+  }
+
+  const allBackupSelected =
+    backupFiles.length > 0 && selectedBackup.size === backupFiles.length;
+  const someBackupSelected =
+    selectedBackup.size > 0 && selectedBackup.size < backupFiles.length;
 
   const allSelected =
     preview.rows.length > 0 && selectedRows.size === preview.rows.length;
@@ -528,6 +641,102 @@ export default function McuApp() {
                       {rowCells(row).map((value, index) => (
                         <td key={index}>{value}</td>
                       ))}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="panel panel-wide">
+          <div className="panel-head">
+            <div>
+              <h2>4. PDF-backup ({backupFiles.length})</h2>
+              <p>
+                Arsip PDF yang sudah berhasil diproses. Download atau hapus file
+                dari folder <code>PDF-backup</code>.
+              </p>
+            </div>
+            <div className="actions">
+              <button
+                className="btn secondary"
+                type="button"
+                disabled={busy.backup}
+                onClick={handleRefreshBackup}
+              >
+                Refresh
+              </button>
+              <button
+                className="btn danger"
+                type="button"
+                disabled={busy.backupDelete || selectedBackup.size === 0}
+                onClick={handleDeleteBackup}
+              >
+                Hapus Terpilih ({selectedBackup.size})
+              </button>
+            </div>
+          </div>
+
+          {backupLog && <div className="log">{backupLog}</div>}
+
+          <div className="table-wrap backup-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th className="select-col">
+                    <input
+                      type="checkbox"
+                      title="Pilih semua backup"
+                      checked={allBackupSelected}
+                      ref={(input) => {
+                        if (input) input.indeterminate = someBackupSelected;
+                      }}
+                      onChange={(event) =>
+                        toggleAllBackup(event.target.checked)
+                      }
+                    />
+                  </th>
+                  <th>Nama file</th>
+                  <th>Ukuran</th>
+                  <th>Di-backup</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!backupFiles.length ? (
+                  <tr>
+                    <td colSpan={5}>Belum ada file di PDF-backup.</td>
+                  </tr>
+                ) : (
+                  backupFiles.map((file) => (
+                    <tr
+                      key={file.name}
+                      className={
+                        selectedBackup.has(file.name) ? "selected" : undefined
+                      }
+                    >
+                      <td className="select-col">
+                        <input
+                          type="checkbox"
+                          aria-label={`Pilih ${file.name}`}
+                          checked={selectedBackup.has(file.name)}
+                          onChange={(event) =>
+                            toggleBackupFile(file.name, event.target.checked)
+                          }
+                        />
+                      </td>
+                      <td className="file-name-cell">{file.name}</td>
+                      <td>{formatBytes(file.size)}</td>
+                      <td>{formatDateTime(file.modifiedAt)}</td>
+                      <td className="actions-cell">
+                        <a
+                          className="btn secondary btn-small"
+                          href={`/api/pdf-backup/download?file=${encodeURIComponent(file.name)}`}
+                        >
+                          Download
+                        </a>
+                      </td>
                     </tr>
                   ))
                 )}
