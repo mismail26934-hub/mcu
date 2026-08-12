@@ -55,6 +55,8 @@ type ProcessResult = {
   preview?: Preview;
 };
 
+const BACKUP_PAGE_SIZE = 10;
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -120,6 +122,7 @@ export default function McuApp() {
   const [backupFiles, setBackupFiles] = useState<BackupPdfEntry[]>([]);
   const [selectedBackup, setSelectedBackup] = useState<Set<string>>(new Set());
   const [backupLog, setBackupLog] = useState("");
+  const [backupPage, setBackupPage] = useState(1);
   const [busy, setBusy] = useState({
     upload: false,
     process: false,
@@ -141,8 +144,19 @@ export default function McuApp() {
     const data = await fetchJson<{ files: BackupPdfEntry[] }>("/api/pdf-backup");
     setBackupFiles(data.files);
     setSelectedBackup(new Set());
+    setBackupPage(1);
     return data.files;
   }, []);
+
+  useEffect(() => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil(backupFiles.length / BACKUP_PAGE_SIZE)
+    );
+    if (backupPage > totalPages) {
+      setBackupPage(totalPages);
+    }
+  }, [backupFiles.length, backupPage]);
 
   useEffect(() => {
     loadStatus().catch((error: Error) => {
@@ -371,12 +385,15 @@ export default function McuApp() {
     });
   }
 
-  function toggleAllBackup(checked: boolean) {
-    if (!checked) {
-      setSelectedBackup(new Set());
-      return;
-    }
-    setSelectedBackup(new Set(backupFiles.map((file) => file.name)));
+  function toggleAllBackupOnPage(checked: boolean) {
+    setSelectedBackup((prev) => {
+      const next = new Set(prev);
+      for (const file of paginatedBackupFiles) {
+        if (checked) next.add(file.name);
+        else next.delete(file.name);
+      }
+      return next;
+    });
   }
 
   async function handleDeleteBackup() {
@@ -433,10 +450,22 @@ export default function McuApp() {
     }
   }
 
-  const allBackupSelected =
-    backupFiles.length > 0 && selectedBackup.size === backupFiles.length;
-  const someBackupSelected =
-    selectedBackup.size > 0 && selectedBackup.size < backupFiles.length;
+  const backupTotalPages = Math.max(
+    1,
+    Math.ceil(backupFiles.length / BACKUP_PAGE_SIZE)
+  );
+  const backupPageSafe = Math.min(backupPage, backupTotalPages);
+  const paginatedBackupFiles = backupFiles.slice(
+    (backupPageSafe - 1) * BACKUP_PAGE_SIZE,
+    backupPageSafe * BACKUP_PAGE_SIZE
+  );
+
+  const allBackupSelectedOnPage =
+    paginatedBackupFiles.length > 0 &&
+    paginatedBackupFiles.every((file) => selectedBackup.has(file.name));
+  const someBackupSelectedOnPage =
+    paginatedBackupFiles.some((file) => selectedBackup.has(file.name)) &&
+    !allBackupSelectedOnPage;
 
   const allSelected =
     preview.rows.length > 0 && selectedRows.size === preview.rows.length;
@@ -687,14 +716,15 @@ export default function McuApp() {
                   <th className="select-col">
                     <input
                       type="checkbox"
-                      title="Pilih semua backup"
-                      checked={allBackupSelected}
+                      title="Pilih semua di halaman ini"
+                      checked={allBackupSelectedOnPage}
                       ref={(input) => {
-                        if (input) input.indeterminate = someBackupSelected;
+                        if (input) input.indeterminate = someBackupSelectedOnPage;
                       }}
                       onChange={(event) =>
-                        toggleAllBackup(event.target.checked)
+                        toggleAllBackupOnPage(event.target.checked)
                       }
+                      disabled={!paginatedBackupFiles.length}
                     />
                   </th>
                   <th>Nama file</th>
@@ -709,7 +739,7 @@ export default function McuApp() {
                     <td colSpan={5}>Belum ada file di PDF-backup.</td>
                   </tr>
                 ) : (
-                  backupFiles.map((file) => (
+                  paginatedBackupFiles.map((file) => (
                     <tr
                       key={file.name}
                       className={
@@ -743,6 +773,42 @@ export default function McuApp() {
               </tbody>
             </table>
           </div>
+
+          {backupFiles.length > 0 && (
+            <div className="pagination">
+              <span className="pagination-info">
+                Menampilkan{" "}
+                {(backupPageSafe - 1) * BACKUP_PAGE_SIZE + 1}–
+                {Math.min(backupPageSafe * BACKUP_PAGE_SIZE, backupFiles.length)}{" "}
+                dari {backupFiles.length} file
+              </span>
+              <div className="pagination-actions">
+                <button
+                  className="btn secondary btn-small"
+                  type="button"
+                  disabled={backupPageSafe <= 1}
+                  onClick={() => setBackupPage((page) => Math.max(1, page - 1))}
+                >
+                  Sebelumnya
+                </button>
+                <span className="pagination-page">
+                  Halaman {backupPageSafe} / {backupTotalPages}
+                </span>
+                <button
+                  className="btn secondary btn-small"
+                  type="button"
+                  disabled={backupPageSafe >= backupTotalPages}
+                  onClick={() =>
+                    setBackupPage((page) =>
+                      Math.min(backupTotalPages, page + 1)
+                    )
+                  }
+                >
+                  Berikutnya
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </div>

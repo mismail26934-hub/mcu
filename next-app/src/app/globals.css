@@ -303,6 +303,33 @@ tbody tr.selected {
   font-size: 0.85rem;
 }
 
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.pagination-info {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.pagination-page {
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-width: 7rem;
+  text-align: center;
+}
+
 @media (max-width: 900px) {
   .header,
   .grid,
