@@ -3,6 +3,7 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+next-app/.next/
 VerifMCU/vendor/
 VerifMCU/composer.phar
 VerifMCU/composer-setup.php

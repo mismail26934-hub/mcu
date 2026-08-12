@@ -2,7 +2,8 @@
 
 Aplikasi untuk mengekstrak data MCU (format Trakindo / Tirta Medical Centre) dari PDF ke sheet **CONTOH** pada file Excel.
 
-Tersedia dalam dua mode:
+Tersedia dalam beberapa mode:
+- **Next.js app** — React 19 + Next.js 16 (`next-app/`)
 - **Web app** — upload massal PDF, proses, preview, dan download Excel
 - **CLI** — script command line untuk otomasi lokal
 
@@ -19,6 +20,9 @@ D:\Help\
 │   ├── index.html            # UI web app
 │   ├── app.js                # Frontend logic
 │   └── styles.css            # Styles
+├── next-app/                 # Next.js 16 + React 19 web app
+│   ├── src/app/              # App Router pages & API routes
+│   └── README.md
 ├── deploy/                   # Script & config deploy VPS
 │   ├── setup-vps.sh
 │   ├── update.sh
@@ -41,6 +45,17 @@ D:\Help\
 | PDF parsing | pdfjs-dist |
 | Excel | xlsx (SheetJS) |
 | Frontend | HTML, CSS, JavaScript (vanilla) |
+| Next.js app | Next.js 16, React 19 (`next-app/`) |
+
+## Cara pakai — Next.js app
+
+```bash
+cd next-app
+npm install
+npm run dev
+```
+
+Buka **http://localhost:3000** — fitur sama dengan web app Express. Detail: [`next-app/README.md`](next-app/README.md).
 
 ## Cara pakai — Web app
 
