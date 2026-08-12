@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const XLSX = require("xlsx");
-const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.mjs");
+const pdfParse = require("pdf-parse/lib/pdf-parse.js");
 const {
   PDF_DIR,
   BACKUP_DIR,
@@ -39,16 +39,8 @@ const MONTH_ABBR = [
 ];
 
 async function extractPdfText(filePath) {
-  const data = new Uint8Array(fs.readFileSync(filePath));
-  const doc = await pdfjsLib.getDocument({ data }).promise;
-  let text = "";
-
-  for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
-    const page = await doc.getPage(pageNum);
-    const content = await page.getTextContent();
-    text += content.items.map((item) => item.str).join(" ") + "\n";
-  }
-
+  const buffer = fs.readFileSync(filePath);
+  const { text } = await pdfParse(buffer);
   return text;
 }
 
@@ -149,15 +141,19 @@ function extractFields(text, fileName) {
   const departmentMatch = firstMatch(text, [
     /Departemen \/ Bagian\s*:\s*(.+?)\s+Tanggal Kunjungan/i,
   ]);
-  const glassesMatch = firstMatch(text, [/Memakai Kacamata Sehari-hari\s+(\w+)/i]);
-  const bpMatch = firstMatch(text, [/Sistol\s+(\d+)\s*mmHg\s+Diastol\s+(\d+)\s*mmHg/i]);
-  const cholesterolMatch = firstMatch(text, [/Cholesterol\s+(\d+)\s*mg\/dL/i]);
-  const triglycerideMatch = firstMatch(text, [/Trigliserid\s+(\d+)\s*mg\/dL/i]);
-  const glucoseMatch = firstMatch(text, [/Estimated Average Glucose \(eAG\)\s+(\d+(?:[.,]\d+)?)/i]);
-  const bmiMatch = firstMatch(text, [/BMI\s+(\d+(?:[.,]\d+)?)/i]);
-  const sgptMatch = firstMatch(text, [/SGPT\s+(\d+)\s*U\/L/i]);
-  const sgotMatch = firstMatch(text, [/SGOT\s+(\d+)\s*U\/L/i]);
-  const smokingMatch = firstMatch(text, [/Merokok\s+(.+?)\s+Alkohol/i]);
+  const glassesMatch = firstMatch(text, [/Memakai Kacamata Sehari-hari\s*(\w+)/i]);
+  const bpMatch = firstMatch(text, [
+    /Sistol\s*(\d+)\s*mmHg\s*Diastol\s*(\d+)\s*mmHg/i,
+  ]);
+  const cholesterolMatch = firstMatch(text, [/Cholesterol\s*(\d+)\s*mg\/dL/i]);
+  const triglycerideMatch = firstMatch(text, [/Trigliserid\s*(\d+)\s*mg\/dL/i]);
+  const glucoseMatch = firstMatch(text, [
+    /Estimated Average Glucose \(eAG\)\s*(\d+(?:[.,]\d+)?)/i,
+  ]);
+  const bmiMatch = firstMatch(text, [/BMI\s*(\d+(?:[.,]\d+)?)/i]);
+  const sgptMatch = firstMatch(text, [/SGPT\s*(\d+)\s*U\/L/i]);
+  const sgotMatch = firstMatch(text, [/SGOT\s*(\d+)\s*U\/L/i]);
+  const smokingMatch = firstMatch(text, [/Merokok\s*(.+?)\s*Alkohol/i]);
 
   const mcuDate = mcuDateMatch ? parseIndonesianDate(mcuDateMatch[1]) : null;
   const dob = genderDobMatch ? parseIndonesianDate(genderDobMatch[2]) : null;
@@ -421,7 +417,15 @@ async function processAllPdfs({ moveToBackup = true } = {}) {
   }
 
   if (processedPdfs.length === 0) {
-    throw new Error("Tidak ada PDF yang berhasil diproses.");
+    const details = results
+      .filter((item) => item.status === "skip")
+      .map((item) => `${item.file}: ${item.error}`)
+      .join("; ");
+    throw new Error(
+      details
+        ? `Tidak ada PDF yang berhasil diproses. ${details}`
+        : "Tidak ada PDF yang berhasil diproses."
+    );
   }
 
   const newWorksheet = XLSX.utils.aoa_to_sheet(rows);
