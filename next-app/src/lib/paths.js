@@ -1,7 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const ROOT_DIR = path.join(__dirname, "../..");
+// process.cwd() = next-app/ when running `npm run dev` or `npm start`.
+// __dirname breaks under Turbopack bundling (resolves to \ROOT\).
+const ROOT_DIR = process.cwd();
 const PDF_DIR = path.join(ROOT_DIR, "PDF FIle");
 const BACKUP_DIR = path.join(ROOT_DIR, "PDF-backup");
 const EXCEL_DIR = path.join(ROOT_DIR, "Excel File");
