@@ -148,7 +148,9 @@ function extractFields(text, fileName) {
   const cholesterolMatch = firstMatch(text, [/Cholesterol\s*(\d+)\s*mg\/dL/i]);
   const triglycerideMatch = firstMatch(text, [/Trigliserid\s*(\d+)\s*mg\/dL/i]);
   const glucoseMatch = firstMatch(text, [
-    /Estimated Average Glucose \(eAG\)\s*(\d+(?:[.,]\d+)?)/i,
+    /Estimated Average Glucose\s*\(eAG\)\s*(\d+(?:[.,]\d+)?)/i,
+    /Estimated Average Glucose[\s\S]*?\(eAG\)[\s\S]*?(\d+(?:[.,]\d+)?)\s*mg\/dL/i,
+    /Estimated Average Glucose[^0-9]*(\d+(?:[.,]\d+)?)\s*mg\/dL/i,
   ]);
   const bmiMatch = firstMatch(text, [/BMI\s*(\d+(?:[.,]\d+)?)/i]);
   const sgptMatch = firstMatch(text, [/SGPT\s*(\d+)\s*U\/L/i]);
