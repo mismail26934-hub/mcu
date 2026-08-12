@@ -1,6 +1,6 @@
 # MCU PDF to Excel — Next.js 16
 
-Versi web app menggunakan **Next.js 16** (App Router + React 19). Logic ekstraksi PDF → Excel di-reuse dari `../lib/extract.js` di repo root.
+Aplikasi web untuk mengekstrak data MCU (format Trakindo / Tirta Medical Centre) dari PDF ke sheet **CONTOH** pada file Excel.
 
 ## Tech stack
 
@@ -8,23 +8,47 @@ Versi web app menggunakan **Next.js 16** (App Router + React 19). Logic ekstraks
 |-------|-----------|
 | Framework | Next.js 16.3 |
 | UI | React 19 |
-| Backend | Route Handlers (`app/api/*`) |
-| PDF / Excel | pdfjs-dist, xlsx (shared logic) |
+| Backend | App Router Route Handlers |
+| PDF parsing | pdfjs-dist |
+| Excel | xlsx (SheetJS) |
+
+## Struktur
+
+```
+next-app/
+├── src/
+│   ├── app/                  # Pages & API routes
+│   ├── components/           # React UI
+│   └── lib/
+│       ├── extract.js        # Logic ekstraksi
+│       └── paths.js          # Path folder data
+├── Excel File/               # Template & output Excel
+├── PDF FIle/                 # Upload PDF
+└── PDF-backup/               # Arsip PDF terproses
+```
 
 ## Prerequisites
 
 - Node.js 18+
-- File Excel template di folder root: `Excel File/NEW List Pengajuan Verifikasi MCU KPC.xlsx`
+- File Excel template di `Excel File/NEW List Pengajuan Verifikasi MCU KPC.xlsx`
 
 ## Cara jalankan
 
 ```bash
-cd next-app
 npm install
 npm run dev
 ```
 
 Buka **http://localhost:3000**
+
+## Alur aplikasi
+
+1. **Upload PDF** — pilih banyak file sekaligus (drag & drop atau browse)
+2. **Proses MCU** — ekstrak data ke sheet CONTOH
+3. **Preview** — lihat data Excel di browser
+4. **Download Excel** — unduh file `.xlsx`
+
+PDF yang sukses diproses otomatis dipindah ke `PDF-backup`.
 
 ## API endpoints
 
@@ -41,11 +65,11 @@ Buka **http://localhost:3000**
 
 | Variable | Default | Keterangan |
 |----------|---------|------------|
-| `PORT` | `3000` | Port dev server (Next.js) |
+| `PORT` | `3000` | Port dev server |
 | `MAX_UPLOAD_FILES` | `50` | Maks. file per upload |
 | `MAX_UPLOAD_MB` | `15` | Maks. ukuran per PDF (MB) |
 
-## Production build
+## Production
 
 ```bash
 npm run build
@@ -54,5 +78,5 @@ npm start
 
 ## Catatan
 
-- Folder data (`PDF FIle`, `PDF-backup`, `Excel File`) berada di **root repo**, bukan di dalam `next-app/`.
-- Versi Express vanilla ada di root (`npm start`). Versi PHP ada di `VerifMCU/`.
+- **Tutup file Excel** sebelum proses/hapus — jika Excel dibuka, hasil disimpan ke `- updated.xlsx`
+- Kolom **Verifc. date** diisi `diisi KPC` (manual oleh tim KPC)
